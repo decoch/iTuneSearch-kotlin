@@ -11,26 +11,21 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import android.widget.*
-import com.android.volley.Request
-import com.android.volley.RequestQueue
-import com.android.volley.Response
-import com.android.volley.toolbox.JsonObjectRequest
-import com.android.volley.toolbox.Volley
 import com.squareup.picasso.Picasso
-import org.json.JSONObject
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 import java.io.UnsupportedEncodingException
 import java.net.URLEncoder
 
 class ListActivity : AppCompatActivity() {
 
-    lateinit private var mRequestQueue: RequestQueue
     lateinit private var mAdapter: ListAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_list)
 
-        mRequestQueue = Volley.newRequestQueue(this)
         mAdapter = ListAdapter(this, R.layout.list_item)
 
         val listView = findViewById(R.id.list_view) as ListView
@@ -42,7 +37,7 @@ class ListActivity : AppCompatActivity() {
         listView.onItemClickListener = OnItemClickListener()
     }
 
-    private inner class ListAdapter(context: Context, resource: Int) : ArrayAdapter<JSONObject>(context, resource) {
+    private inner class ListAdapter(context: Context, resource: Int) : ArrayAdapter<Music>(context, resource) {
 
         override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
             var convertView = convertView
@@ -51,7 +46,7 @@ class ListActivity : AppCompatActivity() {
                 convertView = layoutInflater.inflate(R.layout.list_item, null)
             }
 
-            val imageView = convertView!!.findViewById(R.id.image_view) as ImageView
+            val imageView = convertView?.findViewById(R.id.image_view) as ImageView
             val trackTextView = convertView.findViewById(R.id.track_text_view) as TextView
             val artistTextView = convertView.findViewById(R.id.artist_text_view) as TextView
 
@@ -60,9 +55,9 @@ class ListActivity : AppCompatActivity() {
             // 表示する行番号のデータを取り出す
             val result = getItem(position)
 
-            Picasso.with(context).load(result!!.optString("artworkUrl100")).into(imageView)
-            trackTextView.text = result.optString("trackName")
-            artistTextView.text = result.optString("artistName")
+            Picasso.with(context).load(result.artworkUrl100).into(imageView)
+            trackTextView.text = result.trackName
+            artistTextView.text = result.artistName
 
             return convertView
         }
@@ -90,20 +85,24 @@ class ListActivity : AppCompatActivity() {
             }
 
             if (!TextUtils.isEmpty(text)) {
-                val url = "https://itunes.apple.com/search?term=$text&country=JP&media=music&lang=ja_jp"
-                mRequestQueue.add(JsonObjectRequest(Request.Method.GET, url,
-                        Response.Listener<JSONObject> { response ->
-                            Log.d("", response.toString())
+                val request = iTunesService.create().search(text)
+                 Log.d("", request.request().url().toString())
+                val hoge = object :Callback<Musics> {
 
-                            mAdapter.clear()
+                    override fun onResponse(call: Call<Musics>?, response: Response<Musics>?) {
+                        Log.d("", response.toString())
+                        Log.d("", "success")
 
-                            val results = response.optJSONArray("results")
-                            if (results != null) {
-                                for (i in 0..results.length() - 1) {
-                                    mAdapter.add(results.optJSONObject(i))
-                                }
-                            }
-                        }, null))
+                        mAdapter.clear()
+                        response?.body()?.results?.forEach { mAdapter.add(it) }
+                    }
+
+                    override fun onFailure(call: Call<Musics>?, t: Throwable?) {
+                        Log.d("", call.toString())
+                        Log.d("", "failed")
+                    }
+                }
+                request.enqueue(hoge)
             }
             return true
         }
@@ -115,8 +114,8 @@ class ListActivity : AppCompatActivity() {
             val intent = Intent(this@ListActivity, DetailActivity::class.java)
             // タップされた行番号のデータを取り出す
             val result = mAdapter.getItem(position)
-            intent.putExtra("track_name", result.optString("trackName"))
-            intent.putExtra("preview_url", result.optString("previewUrl"))
+            intent.putExtra("track_name", result.trackName)
+            intent.putExtra("preview_url", result.previewUrl)
 
             startActivity(intent)
         }
