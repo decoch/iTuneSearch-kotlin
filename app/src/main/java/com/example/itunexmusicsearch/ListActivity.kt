@@ -90,16 +90,11 @@ class ListActivity : AppCompatActivity() {
                 val hoge = object :Callback<Musics> {
 
                     override fun onResponse(call: Call<Musics>?, response: Response<Musics>?) {
-                        Log.d("", response.toString())
-                        Log.d("", "success")
-
                         mAdapter.clear()
                         response?.body()?.results?.forEach { mAdapter.add(it) }
                     }
 
                     override fun onFailure(call: Call<Musics>?, t: Throwable?) {
-                        Log.d("", call.toString())
-                        Log.d("", "failed")
                     }
                 }
                 request.enqueue(hoge)
@@ -121,4 +116,3 @@ class ListActivity : AppCompatActivity() {
         }
     }
 }
-

@@ -16,7 +16,6 @@ interface iTunesService {
                @Query("media") media: String = "music",
                @Query("lang") lang: String = "ja_jp"): Call<Musics>
 
-
     /**
      * Companion object for the factory
      */
@@ -32,7 +31,7 @@ interface iTunesService {
 }
 
 data class Musics(
-        val results: Array<Music>
+        var results: List<Music>
 )
 
 data class Music(
